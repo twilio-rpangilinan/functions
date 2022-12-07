@@ -1,0 +1,33 @@
+// Learn more about destination functions API at
+// https://segment.com/docs/connections/destinations/destination-functions
+
+async function onIdentify(event, settings) {
+	let sourceId = settings.sourceId;
+
+	const endpoint =
+		'https://api.segmentapis.com/regulations/sources/' + sourceId; // replace with your endpoint
+	let response;
+	let deletion_request = {
+		regulationType: 'DELETE_ONLY',
+		subjectType: 'USER_ID',
+		subjectIds: [event.userId]
+	};
+	try {
+		response = await fetch(endpoint, {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${settings.apikey}`,
+				'Content-Type': 'application/json'
+			},
+			body: JSON.stringify(deletion_request)
+		});
+	} catch (error) {
+		// Retry on connection error
+		throw new RetryError(error.message);
+	}
+
+	if (response.status >= 500 || response.status === 429) {
+		// Retry on 5xx (server errors) and 429s (rate limits)
+		throw new RetryError(`Failed with ${response.status}`);
+	}
+}
