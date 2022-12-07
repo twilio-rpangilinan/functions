@@ -1,0 +1,52 @@
+// Learn more about destination functions API at
+// https://segment.com/docs/connections/destinations/destination-functions
+
+/**
+ * Handle track event
+ * @param  {SegmentTrackEvent} event
+ * @param  {FunctionSettings} settings
+ */
+async function onIdentify(event, settings) {
+	// Learn more at https://segment.com/docs/connections/spec/identify/
+	let traitName = settings.traitName;
+
+	let payload = {
+		userId: event.userId,
+		anonymousId: event.anonymousId,
+		traits: {
+			[traitName]: 'undefined'
+		}
+	};
+
+	let seg_resp = await sendSegmentEvents(payload, settings);
+}
+
+async function sendSegmentEvents(payload, settings) {
+	let url = 'https://api.segment.io/v1/identify';
+
+	let segmentReq = await fetch(url, {
+		headers: new Headers({
+			Authorization: 'Basic ' + btoa(settings.apiKey + ':'),
+			'Content-Type': 'application/json'
+		}),
+		body: JSON.stringify(payload),
+		method: 'post'
+	});
+	if (segmentReq.ok) {
+		console.log('Identify call sent');
+		console.log(JSON.stringify(payload));
+	} else {
+		console.log(
+			'Error sending data to Segment  ' +
+				segmentReq.status +
+				' ' +
+				segmentReq.statusText
+		);
+		throw new EventNotSupported(
+			'Error sending data to Segment  ' +
+				segmentReq.status +
+				' ' +
+				segmentReq.statusText
+		);
+	}
+}
